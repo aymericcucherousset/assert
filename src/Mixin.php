@@ -1314,7 +1314,7 @@ trait Mixin
     }
 
     /**
-     * @template T of object
+     * @template T
      * @psalm-assert T|null $value
      *
      * @param T|null $value
@@ -1331,7 +1331,7 @@ trait Mixin
     }
 
     /**
-     * @template T of object
+     * @template T
      * @psalm-assert iterable<T> $value
      *
      * @param iterable<T> $value
@@ -1352,7 +1352,7 @@ trait Mixin
     }
 
     /**
-     * @template T of object
+     * @template T
      * @psalm-assert iterable<T|null> $value
      *
      * @param iterable<T|null> $value

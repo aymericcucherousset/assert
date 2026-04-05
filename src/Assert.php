@@ -553,7 +553,7 @@ class Assert
     }
 
     /**
-     * @template T of object
+     * @template T
      *
      * @psalm-assert T $value
      *
