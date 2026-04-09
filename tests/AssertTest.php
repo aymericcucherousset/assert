@@ -22,6 +22,7 @@ use Exception;
 use LogicException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use ReflectionMethod;
 use RuntimeException;
 use SimpleXMLElement;
 use stdClass;
@@ -36,6 +37,13 @@ class AssertTest extends TestCase
 {
     private const SKIP_MIXIN_ASSERTION_TESTS = [
         'isInitialized',
+    ];
+
+    private const SKIP_CUSTOM_MESSAGE_TESTS = [
+        'isAOf',
+        'isAnyOf',
+        'isNotA',
+        'startsWithLetter',
     ];
 
     public static function getResource()
@@ -659,6 +667,101 @@ class AssertTest extends TestCase
 
         $result = call_user_func_array(['Webmozart\Assert\Assert', $method], $args);
         $this->assertSame($args[array_key_first($args)], $result);
+    }
+
+    #[DataProvider('getTests')]
+    public function testCustomMessage(string $method, array $args, bool $success, bool $multibyte = false): void
+    {
+        if (in_array($method, self::SKIP_CUSTOM_MESSAGE_TESTS)) {
+            $this->markTestSkipped("The method $method could have specific message handling instead of custom message.");
+        }
+
+        if (null === reset($args)) {
+            $this->addToAssertionCount(1);
+
+            return;
+        }
+
+        if ($multibyte && !function_exists('mb_strlen')) {
+            $this->markTestSkipped('The function mb_strlen() is not available');
+        }
+
+        if (!$success) {
+            $this->expectException('\InvalidArgumentException');
+            $this->expectExceptionMessage('Custom error message');
+        }
+
+        $ref = new ReflectionMethod('Webmozart\Assert\Assert', $method);
+        $params = $ref->getParameters();
+        $messageParamIndex = null;
+        foreach ($params as $i => $param) {
+            if ($param->getName() === 'message') {
+                $messageParamIndex = $i;
+                break;
+            }
+        }
+        if ($messageParamIndex !== null) {
+            while (count($args) < $messageParamIndex) {
+                $param = $params[count($args)];
+                if ($param->isDefaultValueAvailable()) {
+                    $args[] = $param->getDefaultValue();
+                }
+            }
+        }
+
+        $args[] = 'Custom error message';
+        $result = call_user_func_array(['Webmozart\Assert\Assert', $method], $args);
+
+        $this->assertSame($args[array_key_first($args)], $result);
+    }
+
+    #[DataProvider('getTests')]
+    public function testLazyMessageCallbackCalled(string $method, array $args, bool $success, bool $multibyte = false): void
+    {
+        if (null === reset($args)) {
+            $this->addToAssertionCount(1);
+
+            return;
+        }
+
+        if ($multibyte && !function_exists('mb_strlen')) {
+            $this->markTestSkipped('The function mb_strlen() is not available');
+        }
+
+        if (!$success) {
+            $this->expectException('\InvalidArgumentException');
+        }
+
+        $called = 0;
+
+        $ref = new ReflectionMethod('Webmozart\Assert\Assert', $method);
+        $params = $ref->getParameters();
+        $messageParamIndex = null;
+        foreach ($params as $i => $param) {
+            if ($param->getName() === 'message') {
+                $messageParamIndex = $i;
+                break;
+            }
+        }
+        if ($messageParamIndex !== null) {
+            while (count($args) < $messageParamIndex) {
+                $param = $params[count($args)];
+                if ($param->isDefaultValueAvailable()) {
+                    $args[] = $param->getDefaultValue();
+                }
+            }
+        }
+
+        $args[] = function () use (&$called) {
+            ++$called;
+
+            return 'Custom error message number';
+        };
+
+        call_user_func_array(['Webmozart\Assert\Assert', $method], $args);
+
+        $expectedCalled = $success ? 0 : 1;
+        $this->assertSame($expectedCalled, $called, sprintf('The lazy message callback should be called exactly %d times.', $expectedCalled));
     }
 
     #[DataProvider('getTests')]
