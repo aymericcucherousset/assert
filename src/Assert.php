@@ -889,6 +889,7 @@ class Assert
 
     /**
      * Does non-strict comparisons on the items, so ['3', 3] will not pass the assertion.
+     * Note: objects with identical properties are also considered equal.
      *
      * @throws InvalidArgumentException
      */
