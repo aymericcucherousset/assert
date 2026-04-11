@@ -61,6 +61,10 @@ class AssertTest extends TestCase
         $normalList = ['foo' => 'b', 3];
         unset($normalList['foo']);
 
+        $a = new ToStringClass('testString');
+        $b = new ToStringClass('testString');
+        $c = new ToStringClass('otherString');
+
         return [
             ['string', ['value'], true],
             ['string', [''], true],
@@ -259,6 +263,9 @@ class AssertTest extends TestCase
             ['eq', [1, '1'], true],
             ['eq', [1, true], true],
             ['eq', [1, 0], false],
+            ['eq', [$a, $a], true],
+            ['eq', [$a, $b], true],
+            ['eq', [$a, $c], false],
             ['notEq', [1, 0], true],
             ['notEq', [1, 1], false],
             ['notEq', [1, '1'], false],
@@ -267,10 +274,14 @@ class AssertTest extends TestCase
             ['same', [1, '1'], false],
             ['same', [1, true], false],
             ['same', [1, 0], false],
+            ['same', [$a, $b], false],
+            ['same', [$a, $a], true],
             ['notSame', [1, 0], true],
             ['notSame', [1, 1], false],
             ['notSame', [1, '1'], true],
             ['notSame', [1, true], true],
+            ['notSame', [$a, $b], true],
+            ['notSame', [$a, $a], false],
             ['greaterThan', [1, 0], true],
             ['greaterThan', [0, 0], false],
             ['greaterThanEq', [2, 1], true],
@@ -291,8 +302,15 @@ class AssertTest extends TestCase
             ['notOneOf', [1, ['1', '2', '3']], true],
             ['inArray', [1, [1, 2, 3]], true],
             ['inArray', [1, ['1', '2', '3']], false],
+            ['inArray', [$a, [$a]], true],
+            ['inArray', [$a, [(string) $a]], false],
+            ['inArray', [$a, [$b]], false],
+            ['inArray', [$a, [$c]], false],
             ['notInArray', [1, [1, 2, 3]], false],
             ['notInArray', [1, ['1', '2', '3']], true],
+            ['notInArray', [$a, [$a]], false],
+            ['notInArray', [$a, [$b]], true],
+            ['notInArray', [$a, [$c]], true],
             ['contains', ['abcd', 'ab'], true],
             ['contains', ['abcd', 'bc'], true],
             ['contains', ['abcd', 'cd'], true],
@@ -636,6 +654,9 @@ class AssertTest extends TestCase
             ['uniqueValues', [['qwerty', 'qwerty']], false],
             ['uniqueValues', [['asdfg', 'qwerty']], true],
             ['uniqueValues', [[123, '123']], false],
+            ['uniqueValues', [[$a, $a]], false],
+            ['uniqueValues', [[$a, $b]], false],
+            ['uniqueValues', [[$a, $c]], true],
             ['isStatic', [static function () {}], true],
             ['isStatic', [function () {}], false],
             ['notStatic', [static function () {}], false],
