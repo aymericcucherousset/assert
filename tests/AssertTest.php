@@ -22,7 +22,6 @@ use Exception;
 use LogicException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use ReflectionMethod;
 use RuntimeException;
 use SimpleXMLElement;
 use stdClass;
@@ -697,7 +696,7 @@ class AssertTest extends TestCase
             $this->markTestSkipped("The method $method could have specific message handling instead of custom message.");
         }
 
-        if (null === reset($args)) {
+        if ($args === []) {
             $this->addToAssertionCount(1);
 
             return;
@@ -712,26 +711,8 @@ class AssertTest extends TestCase
             $this->expectExceptionMessage('Custom error message');
         }
 
-        $ref = new ReflectionMethod('Webmozart\Assert\Assert', $method);
-        $params = $ref->getParameters();
-        $messageParamIndex = null;
-        foreach ($params as $i => $param) {
-            if ($param->getName() === 'message') {
-                $messageParamIndex = $i;
-                break;
-            }
-        }
-        if ($messageParamIndex !== null) {
-            while (count($args) < $messageParamIndex) {
-                $param = $params[count($args)];
-                if ($param->isDefaultValueAvailable()) {
-                    $args[] = $param->getDefaultValue();
-                }
-            }
-        }
-
-        $args[] = 'Custom error message';
-        $result = call_user_func_array(['Webmozart\Assert\Assert', $method], $args);
+        $args['message'] = 'Custom error message';
+        $result = Assert::$method(...$args);
 
         $this->assertSame($args[array_key_first($args)], $result);
     }
@@ -739,7 +720,7 @@ class AssertTest extends TestCase
     #[DataProvider('getTests')]
     public function testLazyMessageCallbackCalled(string $method, array $args, bool $success, bool $multibyte = false): void
     {
-        if (null === reset($args)) {
+        if ($args === []) {
             $this->addToAssertionCount(1);
 
             return;
@@ -755,31 +736,13 @@ class AssertTest extends TestCase
 
         $called = 0;
 
-        $ref = new ReflectionMethod('Webmozart\Assert\Assert', $method);
-        $params = $ref->getParameters();
-        $messageParamIndex = null;
-        foreach ($params as $i => $param) {
-            if ($param->getName() === 'message') {
-                $messageParamIndex = $i;
-                break;
-            }
-        }
-        if ($messageParamIndex !== null) {
-            while (count($args) < $messageParamIndex) {
-                $param = $params[count($args)];
-                if ($param->isDefaultValueAvailable()) {
-                    $args[] = $param->getDefaultValue();
-                }
-            }
-        }
-
-        $args[] = function () use (&$called) {
+        $args['message'] = function () use (&$called) {
             ++$called;
 
             return 'Custom error message number';
         };
 
-        call_user_func_array(['Webmozart\Assert\Assert', $method], $args);
+        Assert::$method(...$args);
 
         $expectedCalled = $success ? 0 : 1;
         $this->assertSame($expectedCalled, $called, sprintf('The lazy message callback should be called exactly %d times.', $expectedCalled));
